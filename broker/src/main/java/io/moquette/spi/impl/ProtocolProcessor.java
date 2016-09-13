@@ -15,6 +15,8 @@
  */
 package io.moquette.spi.impl;
 
+import br.com.aiplug.dto.enums.EnumTipoEventoDTO;
+import br.com.aiplug.moquette.rest.client.RestClient;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -284,6 +286,15 @@ public class ProtocolProcessor {
         int flushIntervalMs = 500/*(keepAlive * 1000) / 2*/;
         setupAutoFlusher(channel.pipeline(), flushIntervalMs);
         LOG.info("CONNECT processed");
+        
+        //--------------
+        for(String grupo : RestClient.getGrupo(msg.getClientID())){
+            SubscribeMessage message = new SubscribeMessage();
+            message.addSubscription(new SubscribeMessage.Couple((byte)0, grupo));
+            processSubscribe(channel, message);
+        }
+        RestClient.insertEvent(EnumTipoEventoDTO.CLIENT_CONNECTED, msg.getClientID(), "");
+        
     }
 
     private void setupAutoFlusher(ChannelPipeline pipeline, int flushIntervalMs) {
@@ -424,6 +435,7 @@ public class ProtocolProcessor {
             }
         }
         m_interceptor.notifyTopicPublished(msg, clientID, username);
+        RestClient.insertEvent(EnumTipoEventoDTO.TOPIC_PUBLISHED, clientID, "Topic: " + msg.getTopicName() + " - Msg: " +  new String(msg.getPayload().array()));
     }
 
     /**
@@ -688,6 +700,7 @@ public class ProtocolProcessor {
         String username = NettyUtils.userName(channel);
         m_interceptor.notifyClientDisconnected(clientID, username);
         LOG.info("DISCONNECT client <{}> finished", clientID, cleanSession);
+        RestClient.insertEvent(EnumTipoEventoDTO.CLIENT_DISCONNECTED, clientID, "");
     }
 
     public void processConnectionLost(String clientID, boolean sessionStolen, Channel channel) {
@@ -735,6 +748,8 @@ public class ProtocolProcessor {
             String username = NettyUtils.userName(channel);
             m_interceptor.notifyTopicUnsubscribed(topic, clientID, username);
         }
+        
+        RestClient.insertEvent(EnumTipoEventoDTO.TOPIC_UNSUBSCRIBED, clientID, "Salas: " + topics);
 
         //ack the client
         UnsubAckMessage ackMessage = new UnsubAckMessage();
@@ -787,6 +802,7 @@ public class ProtocolProcessor {
         //fire the persisted messages in session
         for (Subscription subscription : newSubscriptions) {
             publishStoredMessagesInSession(subscription, username);
+            RestClient.insertEvent(EnumTipoEventoDTO.TOPIC_SUBSCRIBED, clientID, "Sala: " + subscription.getTopicFilter());
         }
     }
 
