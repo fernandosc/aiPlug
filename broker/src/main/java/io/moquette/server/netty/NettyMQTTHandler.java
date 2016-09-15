@@ -52,7 +52,8 @@ public class NettyMQTTHandler extends ChannelInboundHandlerAdapter {
                     m_processor.processConnect(ctx.channel(), (ConnectMessage) msg);
                     break;
                 case SUBSCRIBE:
-                    m_processor.processSubscribe(ctx.channel(), (SubscribeMessage) msg);
+                    //Remove the command to external subscribe, only internal
+//                    m_processor.processSubscribe(ctx.channel(), (SubscribeMessage) msg);
                     break;
                 case UNSUBSCRIBE:
                     m_processor.processUnsubscribe(ctx.channel(), (UnsubscribeMessage) msg);

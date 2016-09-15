@@ -287,14 +287,20 @@ public class ProtocolProcessor {
         setupAutoFlusher(channel.pipeline(), flushIntervalMs);
         LOG.info("CONNECT processed");
         
+        
         //--------------
-        for(String grupo : RestClient.getGrupo(msg.getClientID())){
+        RestClient.insertEvent(EnumTipoEventoDTO.CLIENT_CONNECTED, msg.getClientID(), "");
+        List<String> grupoList = null;
+        if(msg.getClientID().startsWith(RestClient.USUARIO_STARTSWITH)){
+            grupoList = RestClient.getGrupo(msg.getClientID());
+        }else{
+            grupoList = Arrays.asList(msg.getClientID());
+        }
+        for(String grupo : grupoList){
             SubscribeMessage message = new SubscribeMessage();
             message.addSubscription(new SubscribeMessage.Couple((byte)0, grupo));
             processSubscribe(channel, message);
-        }
-        RestClient.insertEvent(EnumTipoEventoDTO.CLIENT_CONNECTED, msg.getClientID(), "");
-        
+        }            
     }
 
     private void setupAutoFlusher(ChannelPipeline pipeline, int flushIntervalMs) {
